@@ -11,11 +11,11 @@ interface Composite<S : Composite.State> : Stateful<S> {
     @Composable
     fun Content(modifier: Modifier = Modifier) {
         val state by stateFlow.collectAsState()
-        Content(state)
+        Content(modifier, state)
     }
 
     @Composable
-    fun Content(state: S)
+    fun Content(modifier: Modifier, state: S)
 
     interface State
 }

@@ -4,12 +4,16 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -18,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +32,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import chaintech.videoplayer.host.MediaPlayerHost
@@ -35,11 +45,14 @@ import chaintech.videoplayer.ui.video.VideoPlayerComposable
 import com.arkivanov.decompose.ComponentContext
 import kotlinx.coroutines.SupervisorJob
 import kz.protectorai.CommonHardcode
+import kz.protectorai.core.EMPTY_STRING
 import kz.protectorai.core.Stateful
 import kz.protectorai.core.coroutineScope
 import kz.protectorai.data.ProtectoraiRepository
 import kz.protectorai.navigation.Composite
 import kz.protectorai.ui.icons.ProtectoraiIcons
+
+private const val DATE_CHAR_LENGTH = 6
 
 data class Video(
     val description: String,
@@ -192,8 +205,9 @@ class FeedComponent(
     private val locationsFilterComposite by lazy { LocationsFilterComposite(scope, repository) }
 
     @Composable
-    override fun Content(state: State) {
+    override fun Content(modifier: Modifier, state: State) {
         Scaffold(
+            modifier = modifier,
             floatingActionButton = {
                 FloatingActionButton(onClick = { updateState { copy(isFiltersVisible = true) } }) {
                     Icon(
@@ -210,12 +224,43 @@ class FeedComponent(
         }
         if (state.isFiltersVisible) {
             @OptIn(ExperimentalMaterial3Api::class)
-            ModalBottomSheet(
-                onDismissRequest = { updateState { copy(isFiltersVisible = false) } }
-            ) {
-                Column {
-                    incidentTypesFilterComposite.Content(modifier = Modifier.fillMaxWidth())
-                    locationsFilterComposite.Content(modifier = Modifier.fillMaxWidth())
+            ModalBottomSheet(onDismissRequest = { updateState { copy(isFiltersVisible = false) } }) {
+                Column(Modifier.padding(8.dp)) {
+                    Row {
+                        OutlinedTextField(
+                            modifier = Modifier.weight(1f),
+                            label = { Text("Date start") },
+                            singleLine = true,
+                            value = state.dateStart,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            onValueChange = {
+                                if (it.length <= DATE_CHAR_LENGTH) updateState { copy(dateStart = it) }
+                            },
+                            visualTransformation = VisualTransformation(::dateFilter)
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        OutlinedTextField(
+                            modifier = Modifier.weight(1f),
+                            label = { Text("Date end") },
+                            singleLine = true,
+                            value = state.dateEnd,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            onValueChange = {
+                                if (it.length <= DATE_CHAR_LENGTH) updateState { copy(dateEnd = it) }
+                            },
+                            visualTransformation = VisualTransformation(::dateFilter)
+                        )
+                    }
+                    incidentTypesFilterComposite.Content(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                    )
+                    locationsFilterComposite.Content(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    )
                 }
             }
         }
@@ -242,8 +287,8 @@ class FeedComponent(
 
                 VideoItem(
                     video = videos[videoIndex],
-                    focusedVideo = (index == 0 && focusIndexOffset <= with(density) { 48.dp.toPx() }) ||
-                            (index == focusIndex + 1 && focusIndexOffset > with(density) { 48.dp.toPx() })
+                    focusedVideo = index == 0 && focusIndexOffset <= with(density) { 48.dp.toPx() } ||
+                            index == focusIndex + 1 && focusIndexOffset > with(density) { 48.dp.toPx() }
                 )
             }
         }
@@ -358,5 +403,38 @@ class FeedComponent(
 
     data class State(
         val isFiltersVisible: Boolean = false,
+        val dateStart: String = EMPTY_STRING,
+        val dateEnd: String = EMPTY_STRING,
     ) : Composite.State
+}
+
+fun dateFilter(annotatedText: AnnotatedString): TransformedText {
+    val trimmed = if (annotatedText.text.length >= DATE_CHAR_LENGTH) {
+        annotatedText.text.substring(0 until DATE_CHAR_LENGTH)
+    } else {
+        annotatedText.text
+    }
+    var out = EMPTY_STRING
+    for (i in trimmed.indices) {
+        out += trimmed[i]
+        if (i % 2 == 1 && i < 4) out += '/'
+    }
+
+    val numberOffsetTranslator = object : OffsetMapping {
+        override fun originalToTransformed(offset: Int): Int = when {
+            offset <= 1 -> offset
+            offset <= 3 -> offset + 1
+            offset <= DATE_CHAR_LENGTH -> offset + 2
+            else -> DATE_CHAR_LENGTH + 2
+        }
+
+        override fun transformedToOriginal(offset: Int): Int = when {
+            offset <= 2 -> offset
+            offset <= 5 -> offset - 1
+            offset <= DATE_CHAR_LENGTH + 2 -> offset - 2
+            else -> DATE_CHAR_LENGTH
+        }
+    }
+
+    return TransformedText(AnnotatedString(out), numberOffsetTranslator)
 }

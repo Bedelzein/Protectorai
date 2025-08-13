@@ -1,6 +1,9 @@
 package kz.protectorai
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.ComposeUIViewController
 import com.arkivanov.decompose.DefaultComponentContext
@@ -25,7 +28,7 @@ fun MainViewController() = ComposeUIViewController {
         backDispatcher = backDispatcher,
         backIcon = { progress, _ ->
             PredictiveBackGestureIcon(
-                imageVector = ProtectoraiIcons.ArrowBack(),
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 progress = progress
             )
         }
