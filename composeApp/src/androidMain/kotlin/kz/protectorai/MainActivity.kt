@@ -30,7 +30,7 @@ fun AppAndroidPreview() {
     val root = object : RootComponent {
         override val stack = object : Value<ChildStack<*, RootComponent.Child>>() {
             override val value = ChildStack(
-                Child.Created(RootComponent.Config, RootComponent.Child.Auth())
+                Child.Created(RootComponent.Config, RootComponent.Child.Auth(TODO()))
             )
 
             override fun subscribe(

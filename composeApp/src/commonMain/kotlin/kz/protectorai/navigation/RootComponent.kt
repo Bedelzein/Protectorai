@@ -11,6 +11,7 @@ import com.arkivanov.decompose.value.Value
 import kotlinx.serialization.Serializable
 import kz.protectorai.CommonHardcode
 import kz.protectorai.core.Eventful
+import kz.protectorai.navigation.auth.AuthComponent
 import kz.protectorai.navigation.feed.FeedComponent
 
 interface RootComponent : Eventful<RootComponent.Event> {
@@ -32,7 +33,7 @@ interface RootComponent : Eventful<RootComponent.Event> {
             initialConfiguration = CommonHardcode.wildcard { Config.Feed }
         ) { config, _ ->
             when (config) {
-                is Config.Auth -> Child.Auth()
+                is Config.Auth -> Child.Auth(AuthComponent(componentContext))
                 is Config.Feed -> Child.Feed(FeedComponent(componentContext))
             }
         }
@@ -49,7 +50,7 @@ interface RootComponent : Eventful<RootComponent.Event> {
     }
 
     sealed interface Child {
-        class Auth : Child
+        class Auth(val component: AuthComponent) : Child
         class Feed(val component: FeedComponent) : Child
     }
 
