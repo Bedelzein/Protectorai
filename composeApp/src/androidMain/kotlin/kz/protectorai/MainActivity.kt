@@ -19,7 +19,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val root = RootComponent.Default(defaultComponentContext())
-
         setContent { RootContent(root) }
     }
 }

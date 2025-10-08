@@ -12,13 +12,14 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import kz.protectorai.navigation.auth.AuthContent
+import kz.protectorai.ui.theme.ProtectoraiTheme
 
 @Composable
 fun RootContent(
     root: RootComponent,
     modifier: Modifier = Modifier
 ) {
-    MaterialTheme {
+    ProtectoraiTheme {
         Surface(modifier = modifier.fillMaxSize()) {
             Children(
                 modifier = Modifier.fillMaxSize().systemBarsPadding(),

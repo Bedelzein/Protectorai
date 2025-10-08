@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "614803482240",
+    "project_id": "protectorai-97119",
+    "storage_bucket": "protectorai-97119.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614803482240:android:faddeb84d62791791e6865",
+        "android_client_info": {
+          "package_name": "kz.protectorai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQkbEfJAjs_xciIkMrymuH5IcTy4rBZT8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

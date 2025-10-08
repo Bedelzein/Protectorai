@@ -47,7 +47,7 @@ fun AuthContent(state: AuthComponent.State, onEvent: Eventful<AuthComponent.Even
                 .fillMaxWidth()
                 .padding(16.dp),
             onClick = { onEvent(AuthComponent.Event.AuthButtonClicked) },
-            enabled = !state.isAuthInProgress
+            enabled = !state.isAuthInProgress && state.isReadyToAuth
         ) {
             if (state.isAuthInProgress) CircularProgressIndicator() else Text("Auth")
         }

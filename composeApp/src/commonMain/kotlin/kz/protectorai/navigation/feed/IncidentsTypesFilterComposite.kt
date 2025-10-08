@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
@@ -20,13 +19,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
+import kz.protectorai.CommonHardcode
 import kz.protectorai.core.Stateful
-import kz.protectorai.data.ProtectoraiRepository
+import kz.protectorai.data.ClientRepository
 import kz.protectorai.navigation.Composite
 
 class IncidentsTypesFilterComposite(
     scope: CoroutineScope,
-    private val repository: ProtectoraiRepository
+    private val repository: ClientRepository
 ) : Composite<IncidentsTypesFilterComposite.State>,
     Stateful<IncidentsTypesFilterComposite.State> by Stateful.Default(State.Loading) {
 
@@ -36,7 +36,7 @@ class IncidentsTypesFilterComposite(
                 val incidentTypesFilter = repository.getIncidentTypes()
                     .map { (key, value) -> key }
                     .associateWith { false }
-                updateState { State.Content(incidentTypesFilter) }
+                updateState { State.Content(CommonHardcode.wildcard { mapOf("потенциальная агрессия" to false) }) }
             } catch (e: Exception) {
                 updateState { State.Error(e) }
             }
@@ -60,9 +60,7 @@ class IncidentsTypesFilterComposite(
                             onClick = {
                                 val updatedTypes = incidentTypes.toMutableMap()
                                 updatedTypes[type] = !isSelected
-                                updateState {
-                                    State.Content(updatedTypes)
-                                }
+                                updateState { State.Content(updatedTypes) }
                             },
                             label = { Text(type) },
                             leadingIcon = if (isSelected) {

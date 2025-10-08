@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
@@ -21,7 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kz.protectorai.core.Stateful
-import kz.protectorai.data.ProtectoraiRepository
+import kz.protectorai.data.ClientRepository
 import kz.protectorai.navigation.Composite
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -29,7 +28,7 @@ import kotlin.jvm.JvmInline
 
 class LocationsFilterComposite(
     scope: CoroutineScope,
-    private val repository: ProtectoraiRepository
+    private val repository: ClientRepository
 ) : Composite<LocationsFilterComposite.State>,
     Stateful<LocationsFilterComposite.State> by Stateful.Default(State.Loading) {
 

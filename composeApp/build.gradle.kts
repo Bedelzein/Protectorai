@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinxSerialization)
+    alias(libs.plugins.googleServices)
 }
 
 kotlin {
@@ -29,6 +30,10 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
+            // implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:34.2.0"))
+            implementation("com.google.firebase:firebase-messaging")
+            implementation(libs.worker)
         }
         commonMain.dependencies {
             implementation(libs.kotlinx.serialization.core)
