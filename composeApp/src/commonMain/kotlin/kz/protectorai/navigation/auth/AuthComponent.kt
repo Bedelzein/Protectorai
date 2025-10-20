@@ -6,6 +6,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kz.protectorai.CommonHardcode
+import kz.protectorai.core.EMPTY_STRING
 import kz.protectorai.core.Eventful
 import kz.protectorai.core.Stateful
 import kz.protectorai.core.coroutineScope
@@ -36,7 +37,11 @@ class AuthComponent(
                         state.password
                     )
                     ClientRepository.getInstance(accessToken)
-                    FirebaseUtil.default.registerFirebaseToken()
+                    try {
+                        FirebaseUtil.default.registerFirebaseToken()
+                    } catch (e: Exception) {
+
+                    }
                     withContext(Dispatchers.Main) {
                         onEvent(RootComponent.Event.AuthCompleted(accessToken))
                     }

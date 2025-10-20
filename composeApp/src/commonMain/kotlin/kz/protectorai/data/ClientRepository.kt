@@ -6,6 +6,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.delete
 import io.ktor.client.request.forms.submitForm
+import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -65,6 +66,8 @@ class ClientRepository private constructor(accessToken: String) {
 
     suspend fun getIncidentTypes(): Map<String, String> = http.post("event_types/get").body()
 
+    suspend fun getIncidentClasses(): List<Incident.Type> = http.get("event-classes").body()
+
     suspend fun getLocations(): List<String> = http.submitForm(
         url = "locations/get",
         formParameters = parametersOf("username", "test_user")
@@ -87,7 +90,11 @@ class ClientRepository private constructor(accessToken: String) {
         fun getInstanceUnsafe() = instance ?: error("ClientRepository is not initialized")
 
         fun logout() {
-            FirebaseUtil.default.unregisterFirebaseToken()
+            try {
+                FirebaseUtil.default.unregisterFirebaseToken()
+            } catch (e: Exception) {
+
+            }
             instance = null
         }
     }

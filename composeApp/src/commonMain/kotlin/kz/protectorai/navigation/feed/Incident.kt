@@ -22,4 +22,12 @@ data class Incident(
     val probability: Float,
     @SerialName("confirmed")
     val isConfirmed: Boolean
-)
+) {
+
+    @Serializable
+    data class Type(
+        val id: Int,
+        val name: String,
+        val description: String
+    )
+}

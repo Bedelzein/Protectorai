@@ -2,7 +2,6 @@ package kz.protectorai.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -22,11 +21,11 @@ fun RootContent(
     ProtectoraiTheme {
         Surface(modifier = modifier.fillMaxSize()) {
             Children(
-                modifier = Modifier.fillMaxSize().systemBarsPadding(),
+                modifier = Modifier.fillMaxSize(),
                 stack = root.stack,
                 animation = stackAnimation(fade())
-            ) {
-                (_, child) -> when (child) {
+            ) { (_, child) ->
+                when (child) {
                     is RootComponent.Child.Auth -> {
                         val component = child.component
                         val state by component.stateFlow.collectAsState()

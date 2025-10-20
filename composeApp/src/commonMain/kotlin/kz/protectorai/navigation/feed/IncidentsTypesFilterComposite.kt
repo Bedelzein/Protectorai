@@ -36,7 +36,7 @@ class IncidentsTypesFilterComposite(
                 val incidentTypesFilter = repository.getIncidentTypes()
                     .map { (key, value) -> key }
                     .associateWith { false }
-                updateState { State.Content(CommonHardcode.wildcard { mapOf("потенциальная агрессия" to false) }) }
+                updateState { State.Content(CommonHardcode.wildcard { mapOf("потенциальная агрессия" to true) }) }
             } catch (e: Exception) {
                 updateState { State.Error(e) }
             }

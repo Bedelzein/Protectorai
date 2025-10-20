@@ -8,28 +8,35 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -38,8 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import chaintech.videoplayer.host.MediaPlayerHost
@@ -47,12 +52,19 @@ import chaintech.videoplayer.ui.video.VideoPlayerComposable
 import com.arkivanov.decompose.ComponentContext
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kz.protectorai.core.EMPTY_STRING
+import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.minus
+import kotlinx.datetime.toLocalDateTime
+import kz.protectorai.CommonHardcode
 import kz.protectorai.core.Eventful
 import kz.protectorai.core.Stateful
 import kz.protectorai.core.coroutineScope
@@ -61,7 +73,11 @@ import kz.protectorai.navigation.Composite
 import kz.protectorai.navigation.RootComponent
 import kz.protectorai.ui.icons.ProtectoraiIcons
 import kotlin.jvm.JvmInline
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 class FeedComponent(
     componentContext: ComponentContext,
     private val onRootEvent: Eventful<RootComponent.Event>,
@@ -70,6 +86,7 @@ class FeedComponent(
     Composite<FeedComponent.State>, Stateful<FeedComponent.State> by Stateful.Default(State()) {
 
     private val scope by lazy { coroutineScope(SupervisorJob()) }
+    private val timezone = TimeZone.currentSystemDefault()
 
     private val incidentTypesFilterComposite by lazy {
         IncidentsTypesFilterComposite(
@@ -83,6 +100,15 @@ class FeedComponent(
     }
 
     init {
+        scope.launch {
+            val now = Clock.System.now()
+            updateState {
+                copy(
+                    timeStart = now.minus(7, DateTimeUnit.DAY, timezone),
+                    timeEnd = now
+                )
+            }
+        }
         combine(
             incidentTypesFilterComposite
                 .stateFlow
@@ -92,8 +118,8 @@ class FeedComponent(
                 .stateFlow
                 .filterIsInstance<LocationsFilterComposite.State.Content>()
                 .map { it.locationsFilter.filter { (_, value) -> value }.keys.toList() },
-            stateFlow.map { it.dateStart }.filter { it.length == DATE_CHAR_LENGTH },
-            stateFlow.map { it.dateEnd }.filter { it.length == DATE_CHAR_LENGTH }
+            stateFlow.map { it.timeStart }.filterNotNull(),
+            stateFlow.map { it.timeEnd }.filterNotNull()
         ) { incidentTypes, locations, dateStart, dateEnd ->
             FeedFilter(
                 incidentTypes,
@@ -104,15 +130,16 @@ class FeedComponent(
         }
             .onEach { incidentsFilter ->
                 try {
-                    val dateStart = incidentsFilter.dateStart
-                    val dateEnd = incidentsFilter.dateEnd
+                    val format = LocalDateTime.Formats.ISO
+                    val dateStart = incidentsFilter.timeStart
+                    val dateEnd = incidentsFilter.timeEnd
                     val incidents = clientRepository.getIncidents(
                         GetIncidentsRequestBody(
                             isConfirmed = true,
                             locationIds = incidentsFilter.locations,
                             eventTypes = incidentsFilter.incidentTypes,
-                            startDate = "20${dateStart[4]}${dateStart[5]}-${dateStart[2]}${dateStart[3]}-${dateStart[0]}${dateStart[1]}T00:00:00.000Z",
-                            endDate = "20${dateEnd[4]}${dateEnd[5]}-${dateEnd[2]}${dateEnd[3]}-${dateEnd[0]}${dateEnd[1]}T00:00:00.000Z"
+                            startDate = dateStart.toLocalDateTime(timezone).format(format),
+                            endDate = dateEnd.toLocalDateTime(timezone).format(format)
                         )
                     )
                     updateState { copy(content = State.Content.Loaded(incidents)) }
@@ -121,6 +148,10 @@ class FeedComponent(
                 }
             }
             .launchIn(scope)
+        scope.launch {
+            val types = clientRepository.getIncidentClasses()
+            updateState { copy(incidentTypes = types) }
+        }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -155,7 +186,7 @@ class FeedComponent(
             },
             floatingActionButton = {
                 FloatingActionButton(
-                    onClick = { updateState { copy(modal = State.Modal.IncidentsFilter) } }
+                    onClick = { updateState { copy(isDatePickerVisible = true) } }
                 ) {
                     Icon(
                         imageVector = ProtectoraiIcons.Filter(),
@@ -175,6 +206,9 @@ class FeedComponent(
                 else -> CircularProgressIndicator()
             }
         }
+        if (state.isDatePickerVisible) {
+            IncidentsFilter(onDismiss = { updateState { copy(isDatePickerVisible = false) } })
+        }
         state.modal?.let { Modal(state, it) }
     }
 
@@ -183,87 +217,136 @@ class FeedComponent(
     private fun Modal(state: State, modal: State.Modal) {
         ModalBottomSheet(onDismissRequest = { updateState { copy(modal = null) } }) {
             when (modal) {
-                is State.Modal.IncidentsFilter -> IncidentsFilter(state)
                 is State.Modal.Notifications -> Column { }
                 is State.Modal.IncidentDetails -> Column {
                     VideoItem(
                         incident = modal.incident,
                         focusedVideo = true
                     )
-                    Button(
+                    ExposedDropdownMenuBox(
                         modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        onClick = {
-
+                        expanded = modal.isTypeExpanded,
+                        onExpandedChange = {
+                            updateState {
+                                copy(modal = modal.copy(isTypeExpanded = !modal.isTypeExpanded))
+                            }
                         }
                     ) {
-                        Text("Спорт")
-                    }
-                    Button(
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        onClick = {
-
+                        OutlinedTextField(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            readOnly = true,
+                            value = modal.type?.name.orEmpty(),
+                            onValueChange = {},
+                            label = { Text("Incident type") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(
+                                    expanded = modal.isTypeExpanded
+                                )
+                            },
+                            supportingText = { modal.type?.let { Text(it.description) } }
+                        )
+                        ExposedDropdownMenu(
+                            expanded = modal.isTypeExpanded,
+                            onDismissRequest = {
+                                updateState { copy(modal = modal.copy(isTypeExpanded = false)) }
+                            }
+                        ) {
+                            state.incidentTypes?.forEach {
+                                DropdownMenuItem(
+                                    text = { Text(it.name) },
+                                    onClick = {
+                                        updateState {
+                                            copy(
+                                                modal = modal.copy(
+                                                    isTypeExpanded = false,
+                                                    type = it
+                                                )
+                                            )
+                                        }
+                                    }
+                                )
+                            }
                         }
-                    ) {
-                        Text("Драка")
-                    }
-                    Button(
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        onClick = {
-
-                        }
-                    ) {
-                        Text("Pampering")
-                    }
-                    Button(
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        onClick = {
-
-                        }
-                    ) {
-                        Text("False positive")
                     }
                 }
             }
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    private fun IncidentsFilter(state: State) {
-        Column(Modifier.padding(8.dp)) {
-            Row {
-                OutlinedTextField(
-                    modifier = Modifier.weight(1f),
-                    label = { Text("Date start") },
-                    singleLine = true,
-                    value = state.dateStart,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    onValueChange = {
-                        if (it.length <= DATE_CHAR_LENGTH) updateState { copy(dateStart = it) }
-                    },
-                    visualTransformation = VisualTransformation(::dateFilter)
-                )
-                Spacer(Modifier.size(8.dp))
-                OutlinedTextField(
-                    modifier = Modifier.weight(1f),
-                    label = { Text("Date end") },
-                    singleLine = true,
-                    value = state.dateEnd,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    onValueChange = {
-                        if (it.length <= DATE_CHAR_LENGTH) updateState { copy(dateEnd = it) }
-                    },
-                    visualTransformation = VisualTransformation(::dateFilter)
-                )
+    fun IncidentsFilter(onDismiss: () -> Unit) {
+        val dateRangePickerState = rememberDateRangePickerState(
+            initialSelectedStartDateMillis = state.timeStart?.toEpochMilliseconds(),
+            initialSelectedEndDateMillis = state.timeEnd?.toEpochMilliseconds()
+        )
+
+        DatePickerDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val dateStart = dateRangePickerState.selectedStartDateMillis
+                            ?: return@TextButton onDismiss()
+                        val dateEnd = dateRangePickerState.selectedEndDateMillis
+                            ?: state.timeEnd?.toEpochMilliseconds()
+                            ?: return@TextButton onDismiss()
+                        val startInstant = Instant.fromEpochMilliseconds(dateStart)
+                        val endInstant = Instant.fromEpochMilliseconds(dateEnd)
+                        updateState { copy(timeStart = startInstant, timeEnd = endInstant) }
+                        onDismiss()
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("Закрыть")
+                }
             }
-            incidentTypesFilterComposite.Content(
+        ) {
+            DateRangePicker(
+                state = dateRangePickerState,
+                title = {
+                    Column {
+                        incidentTypesFilterComposite.Content(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp)
+                        )
+                        locationsFilterComposite.Content(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        )
+                    }
+                },
+                headline = {
+                    val dateFormatter = DatePickerDefaults.dateFormatter()
+                    val locale = dateRangePickerState.locale
+                    val formatterStartDate = dateFormatter.formatDate(
+                        dateMillis = dateRangePickerState.selectedStartDateMillis,
+                        locale = locale
+                    ) ?: return@DateRangePicker
+                    val endDate = dateRangePickerState.selectedEndDateMillis
+                        ?: state.timeEnd?.toEpochMilliseconds()
+                        ?: return@DateRangePicker
+                    val formatterEndDate = dateFormatter.formatDate(
+                        dateMillis = endDate,
+                        locale = locale
+                    ) ?: return@DateRangePicker
+                    Text(
+                        "$formatterStartDate - $formatterEndDate",
+                        fontSize = 16.sp
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp)
-            )
-            locationsFilterComposite.Content(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
+                    .height(500.dp)
+                    .padding(16.dp)
             )
         }
     }
@@ -315,7 +398,7 @@ class FeedComponent(
                     Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp)
-                        .aspectRatio(768f / 432f)
+                        .aspectRatio(CommonHardcode.wildcard { 768f / 432f })
                 ) {
                     Player(
                         modifier = Modifier.fillMaxSize(),
@@ -387,11 +470,7 @@ class FeedComponent(
     ) {
         val playerHost = remember { MediaPlayerHost(mediaUrl = incident.videoSource) }
 
-        if (focusedVideo) {
-            playerHost.play()
-        } else {
-            playerHost.pause()
-        }
+        if (focusedVideo) playerHost.play() else playerHost.pause()
 
         VideoPlayerComposable(
             modifier = modifier,
@@ -400,10 +479,12 @@ class FeedComponent(
     }
 
     data class State(
-        val dateStart: String = EMPTY_STRING,
-        val dateEnd: String = EMPTY_STRING,
+        val timeStart: Instant? = null,
+        val timeEnd: Instant? = null,
         val content: Content = Content.Loading,
-        val modal: Modal? = Modal.IncidentsFilter
+        val isDatePickerVisible: Boolean = true,
+        val modal: Modal? = null,
+        val incidentTypes: List<Incident.Type>? = null
     ) : Composite.State {
 
         sealed interface Content {
@@ -414,26 +495,19 @@ class FeedComponent(
         }
 
         sealed interface Modal {
-            data object IncidentsFilter : Modal
             data object Notifications : Modal
             data class IncidentDetails(
                 val incident: Incident,
-                val mark: Mark? = null
-            ) : Modal {
-                enum class Mark(val title: String) {
-                    SPORT("sport"),
-                    FIGHT("fight"),
-                    PAMPERING("pampering"),
-                    FALSE_POSITIVE("false positive")
-                }
-            }
+                val isTypeExpanded: Boolean = false,
+                val type: Incident.Type? = null
+            ) : Modal
         }
     }
 
     data class FeedFilter(
         val incidentTypes: List<String>,
         val locations: List<String>,
-        val dateStart: String,
-        val dateEnd: String
+        val timeStart: Instant,
+        val timeEnd: Instant
     )
 }

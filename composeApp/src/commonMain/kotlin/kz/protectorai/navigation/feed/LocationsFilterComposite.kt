@@ -35,7 +35,7 @@ class LocationsFilterComposite(
     init {
         scope.launch(Dispatchers.IO) {
             try {
-                val locationsFilter = repository.getLocations().associateWith { false }
+                val locationsFilter = repository.getLocations().associateWith { true }
                 updateState { State.Content(locationsFilter) }
             } catch (e: Exception) {
                 updateState { State.Error(e) }
