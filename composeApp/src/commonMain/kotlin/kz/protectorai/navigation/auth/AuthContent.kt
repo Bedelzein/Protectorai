@@ -62,7 +62,9 @@ fun AuthContent(state: AuthComponent.State, onEvent: Eventful<AuthComponent.Even
                     modifier = Modifier.fillMaxWidth(),
                     value = state.username,
                     onValueChange = { onEvent(AuthComponent.Event.UsernameChanged(it)) },
-                    label = { Text("Username") }
+                    label = { Text("Username") },
+                    isError = state.errorText != null,
+                    supportingText = { state.errorText?.let { text -> Text(text) } }
                 )
                 Spacer(Modifier.size(16.dp))
                 OutlinedTextField(

@@ -5,9 +5,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kz.protectorai.CommonHardcode
 import kz.protectorai.core.EMPTY_STRING
 import kz.protectorai.core.Eventful
+import kz.protectorai.core.Payload
 import kz.protectorai.core.Stateful
 import kz.protectorai.core.coroutineScope
 import kz.protectorai.data.ClientRepository
@@ -27,24 +27,30 @@ class AuthComponent(
 
     override fun onEvent(event: Event) {
         when (event) {
-            is Event.UsernameChanged -> updateState { copy(username = event.value) }
-            is Event.PasswordChanged -> updateState { copy(password = event.value) }
-            is Event.AuthButtonClicked -> {
-                updateState { copy(isAuthInProgress = true) }
-                scope.launch {
-                    val (accessToken, _) = GuestRepository.auth(
-                        state.username,
-                        state.password
-                    )
-                    ClientRepository.getInstance(accessToken)
-                    try {
-                        FirebaseUtil.default.registerFirebaseToken()
-                    } catch (e: Exception) {
+            is Event.UsernameChanged -> updateState { copy(username = event.value, errorText = null) }
+            is Event.PasswordChanged -> updateState { copy(password = event.value, errorText = null) }
+            is Event.AuthButtonClicked -> auth()
+        }
+    }
 
-                    }
+    private fun auth() {
+        updateState { copy(isAuthInProgress = true) }
+        scope.launch {
+            when (val payload = GuestRepository.auth(state.username, state.password)) {
+                is Payload.Success -> {
+                    val accessToken = payload.data.accessToken
+                    ClientRepository.getInstance(accessToken)
+                    runCatching { FirebaseUtil.default.registerFirebaseToken() }
                     withContext(Dispatchers.Main) {
                         onEvent(RootComponent.Event.AuthCompleted(accessToken))
                     }
+                }
+                is Payload.Failure -> updateState {
+                    copy(
+                        password = EMPTY_STRING,
+                        isAuthInProgress = false,
+                        errorText = payload.message
+                    )
                 }
             }
         }
@@ -53,7 +59,8 @@ class AuthComponent(
     data class State(
         val username: String = "sko_bilim",
         val password: String = "sko_bilim!",
-        val isAuthInProgress: Boolean = false
+        val isAuthInProgress: Boolean = false,
+        val errorText: String? = null
     ) {
         val isReadyToAuth = username.isNotBlank() && password.isNotBlank() && !isAuthInProgress
     }

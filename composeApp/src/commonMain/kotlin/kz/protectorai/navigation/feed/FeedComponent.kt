@@ -318,16 +318,12 @@ class FeedComponent(
             DateRangePicker(
                 state = dateRangePickerState,
                 title = {
-                    Column {
-                        incidentTypesFilterComposite.Content(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 16.dp)
-                        )
+                    Column(modifier = Modifier.padding(start = 8.dp, top = 16.dp, end = 8.dp)) {
+                        incidentTypesFilterComposite.Content(modifier = Modifier.fillMaxWidth())
                         locationsFilterComposite.Content(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 8.dp)
+                                .padding(top = 4.dp)
                         )
                     }
                 },
@@ -346,14 +342,14 @@ class FeedComponent(
                         locale = locale
                     ) ?: return@DateRangePicker
                     Text(
-                        "$formatterStartDate - $formatterEndDate",
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        text = "$formatterStartDate - $formatterEndDate",
                         fontSize = 16.sp
                     )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(500.dp)
-                    .padding(16.dp)
             )
         }
     }

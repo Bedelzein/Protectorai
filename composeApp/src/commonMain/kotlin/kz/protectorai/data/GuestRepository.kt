@@ -11,6 +11,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kz.protectorai.core.EMPTY_STRING
+import kz.protectorai.core.Payload
 
 object GuestRepository {
     private val http by lazy {
@@ -29,17 +30,29 @@ object GuestRepository {
         }
     }
 
-    suspend fun auth(username: String, password: String): AuthResponseBody = http.submitForm(
-        url = "auth/login",
-        formParameters = Parameters.build {
-            append("username", username)
-            append("password", password)
-            append("grant_type", "password")
-            append("scope", EMPTY_STRING)
-            append("client_id", "null")
-            append("client_secret", "null")
+    suspend fun auth(username: String, password: String): Payload<AuthResponseBody> {
+        val res = http.submitForm(
+            url = "auth/login",
+            formParameters = Parameters.build {
+                append("username", username)
+                append("password", password)
+                append("grant_type", "password")
+                append("scope", EMPTY_STRING)
+                append("client_id", "null")
+                append("client_secret", "null")
+            }
+        )
+        try {
+            return Payload.Success(res.body())
+        } catch (_: Throwable) {
+            try {
+                val message = res.body<AuthErrorResponse>().detail
+                return Payload.Failure(message)
+            } catch (e: Throwable) {
+                return Payload.Failure(e.message ?: e.toString())
+            }
         }
-    ).body()
+    }
 }
 
 @Serializable
@@ -49,3 +62,6 @@ data class AuthResponseBody(
     @SerialName("token_type")
     val tokenType: String
 )
+
+@Serializable
+data class AuthErrorResponse(val detail: String)
