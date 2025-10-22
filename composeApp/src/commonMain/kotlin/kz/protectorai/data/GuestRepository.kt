@@ -7,6 +7,8 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.forms.submitForm
 import io.ktor.http.Parameters
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kz.protectorai.core.EMPTY_STRING
 
@@ -39,3 +41,11 @@ object GuestRepository {
         }
     ).body()
 }
+
+@Serializable
+data class AuthResponseBody(
+    @SerialName("access_token")
+    val accessToken: String,
+    @SerialName("token_type")
+    val tokenType: String
+)

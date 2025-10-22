@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -50,6 +47,8 @@ import androidx.compose.ui.unit.sp
 import chaintech.videoplayer.host.MediaPlayerHost
 import chaintech.videoplayer.ui.video.VideoPlayerComposable
 import com.arkivanov.decompose.ComponentContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
@@ -69,6 +68,7 @@ import kz.protectorai.core.Eventful
 import kz.protectorai.core.Stateful
 import kz.protectorai.core.coroutineScope
 import kz.protectorai.data.ClientRepository
+import kz.protectorai.data.Institution
 import kz.protectorai.navigation.Composite
 import kz.protectorai.navigation.RootComponent
 import kz.protectorai.ui.icons.ProtectoraiIcons
@@ -100,7 +100,7 @@ class FeedComponent(
     }
 
     init {
-        scope.launch {
+        scope.launch(Dispatchers.IO) {
             val now = Clock.System.now()
             updateState {
                 copy(
@@ -108,6 +108,11 @@ class FeedComponent(
                     timeEnd = now
                 )
             }
+        }
+        scope.launch(Dispatchers.IO) {
+            val clientInfo = clientRepository.getClientInfo()
+            val institutions = clientRepository.getInstitutions(clientInfo.companyId)
+            updateState { copy(institutions = institutions) }
         }
         combine(
             incidentTypesFilterComposite
@@ -171,7 +176,7 @@ class FeedComponent(
                     actions = {
                         IconButton(onClick = { updateState { copy(modal = State.Modal.Notifications) } }) {
                             Icon(
-                                imageVector = Icons.Filled.Notifications,
+                                imageVector = ProtectoraiIcons.Notifications(),
                                 contentDescription = null
                             )
                         }
@@ -217,7 +222,9 @@ class FeedComponent(
     private fun Modal(state: State, modal: State.Modal) {
         ModalBottomSheet(onDismissRequest = { updateState { copy(modal = null) } }) {
             when (modal) {
-                is State.Modal.Notifications -> Column { }
+                is State.Modal.Notifications -> Column {
+                    state.institutions?.forEach { Text(it.name) }
+                }
                 is State.Modal.IncidentDetails -> Column {
                     VideoItem(
                         incident = modal.incident,
@@ -454,7 +461,7 @@ class FeedComponent(
                                 }
                             }
                         ) {
-                            Icon(imageVector = Icons.Filled.Edit, contentDescription = null)
+                            Icon(imageVector = ProtectoraiIcons.Edit(), contentDescription = null)
                         }
                     }
                 }
@@ -484,7 +491,8 @@ class FeedComponent(
         val content: Content = Content.Loading,
         val isDatePickerVisible: Boolean = true,
         val modal: Modal? = null,
-        val incidentTypes: List<Incident.Type>? = null
+        val incidentTypes: List<Incident.Type>? = null,
+        val institutions: List<Institution>? = null
     ) : Composite.State {
 
         sealed interface Content {

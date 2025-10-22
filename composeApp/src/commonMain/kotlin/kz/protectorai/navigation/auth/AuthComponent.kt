@@ -51,8 +51,8 @@ class AuthComponent(
     }
 
     data class State(
-        val username: String = EMPTY_STRING,
-        val password: String = EMPTY_STRING,
+        val username: String = "sko_bilim",
+        val password: String = "sko_bilim!",
         val isAuthInProgress: Boolean = false
     ) {
         val isReadyToAuth = username.isNotBlank() && password.isNotBlank() && !isAuthInProgress

@@ -14,8 +14,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.parametersOf
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.utils.io.InternalAPI
-import io.ktor.utils.io.locks.synchronized
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -80,6 +78,12 @@ class ClientRepository private constructor(accessToken: String) {
         setBody(request)
     }.body<List<Incident>>()
 
+    suspend fun getClientInfo(): ClientInfo = http.get("auth/me").body()
+
+    suspend fun getInstitutions(
+        companyId: String
+    ): List<Institution> = http.get("companies/$companyId/institutions").body()
+
     companion object Companion {
 
         private var instance: ClientRepository? = null
@@ -101,9 +105,27 @@ class ClientRepository private constructor(accessToken: String) {
 }
 
 @Serializable
-data class AuthResponseBody(
-    @SerialName("access_token")
-    val accessToken: String,
-    @SerialName("token_type")
-    val tokenType: String
+data class ClientInfo(
+    val username: String,
+
+    @SerialName("company_id")
+    val companyId: String,
+
+    @SerialName("available_locations")
+    val availableLocations: List<String>,
+
+    val roles: List<String>
+)
+
+@Serializable
+data class Institution(
+    @SerialName("institution_id")
+    val id: String,
+
+    val name: String,
+
+    @SerialName("company_id")
+    val companyId: String,
+
+    val address: String?
 )

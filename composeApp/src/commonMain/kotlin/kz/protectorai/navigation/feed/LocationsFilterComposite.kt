@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -22,6 +20,7 @@ import kotlinx.coroutines.launch
 import kz.protectorai.core.Stateful
 import kz.protectorai.data.ClientRepository
 import kz.protectorai.navigation.Composite
+import kz.protectorai.ui.icons.ProtectoraiIcons
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.jvm.JvmInline
@@ -66,7 +65,7 @@ class LocationsFilterComposite(
                             leadingIcon = if (isSelected) {
                                 {
                                     Icon(
-                                        imageVector = Icons.Filled.Done,
+                                        imageVector = ProtectoraiIcons.Done(),
                                         modifier = Modifier.size(FilterChipDefaults.IconSize),
                                         contentDescription = null
                                     )
