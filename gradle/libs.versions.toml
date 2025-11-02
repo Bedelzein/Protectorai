@@ -1,5 +1,6 @@
 [versions]
 agp = "8.13.0"
+datastore = "1.1.7"
 kotlin = "2.2.20"
 androidx-activity = "1.11.0"
 androidx-appcompat = "1.7.1"
@@ -20,6 +21,8 @@ google-services = "4.4.4"
 firebase-bom = "34.4.0"
 
 [libraries]
+androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }

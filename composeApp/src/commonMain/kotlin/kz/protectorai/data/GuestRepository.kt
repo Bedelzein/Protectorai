@@ -1,5 +1,6 @@
 package kz.protectorai.data
 
+import androidx.datastore.preferences.core.edit
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -31,7 +32,7 @@ object GuestRepository {
     }
 
     suspend fun auth(username: String, password: String): Payload<AuthResponseBody> {
-        val res = http.submitForm(
+        val response = http.submitForm(
             url = "auth/login",
             formParameters = Parameters.build {
                 append("username", username)
@@ -43,10 +44,11 @@ object GuestRepository {
             }
         )
         try {
-            return Payload.Success(res.body())
+            val result = response.body<AuthResponseBody>()
+            return Payload.Success(result)
         } catch (_: Throwable) {
             try {
-                val message = res.body<AuthErrorResponse>().detail
+                val message = response.body<AuthErrorResponse>().detail
                 return Payload.Failure(message)
             } catch (e: Throwable) {
                 return Payload.Failure(e.message ?: e.toString())

@@ -36,6 +36,8 @@ kotlin {
             implementation(libs.worker)
         }
         commonMain.dependencies {
+            implementation(libs.androidx.datastore)
+            implementation(libs.androidx.datastore.preferences)
             implementation(libs.kotlinx.serialization.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.core)

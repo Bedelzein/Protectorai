@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -71,6 +73,7 @@ import kz.protectorai.data.ClientRepository
 import kz.protectorai.data.Institution
 import kz.protectorai.navigation.Composite
 import kz.protectorai.navigation.RootComponent
+import kz.protectorai.navigation.feed.FeedComponent.State.Content
 import kz.protectorai.ui.icons.ProtectoraiIcons
 import kotlin.jvm.JvmInline
 import kotlin.time.Clock
@@ -110,9 +113,13 @@ class FeedComponent(
             }
         }
         scope.launch(Dispatchers.IO) {
-            val clientInfo = clientRepository.getClientInfo()
-            val institutions = clientRepository.getInstitutions(clientInfo.companyId)
-            updateState { copy(institutions = institutions) }
+            try {
+                val clientInfo = clientRepository.getClientInfo()
+                val institutionsResponse = clientRepository.getInstitutions(clientInfo.companyId)
+                updateState { copy(institutions = institutionsResponse.items) }
+            } catch (e: Throwable) {
+                // TODO
+            }
         }
         combine(
             incidentTypesFilterComposite
@@ -147,7 +154,8 @@ class FeedComponent(
                             endDate = dateEnd.toLocalDateTime(timezone).format(format)
                         )
                     )
-                    updateState { copy(content = State.Content.Loaded(incidents)) }
+                    val content = incidents.takeIf { it.isNotEmpty() }?.let(Content::Loaded) ?: Content.Empty
+                    updateState { copy(content = content) }
                 } catch (e: Exception) {
                     // TODO
                 }
@@ -201,20 +209,46 @@ class FeedComponent(
             }
         ) {
             when (val content = state.content) {
-                is State.Content.Loaded -> if (content.value.isNotEmpty()) {
+                is Content.Loading -> CircularProgressIndicator()
+                is Content.Empty -> EmptyContent()
+                is Content.Loaded -> if (content.value.isNotEmpty()) {
                     VideoList(
                         content.value,
                         modifier = Modifier.padding(it)
                     )
                 }
-
-                else -> CircularProgressIndicator()
             }
         }
         if (state.isDatePickerVisible) {
             IncidentsFilter(onDismiss = { updateState { copy(isDatePickerVisible = false) } })
         }
         state.modal?.let { Modal(state, it) }
+    }
+
+    @Composable
+    private fun EmptyContent() {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(CommonHardcode { "No data for selected period" })
+            Spacer(Modifier.size(16.dp))
+            Button(
+                onClick = { updateState { copy(isDatePickerVisible = true) } }
+            ) { Text(CommonHardcode { "Select another period" }) }
+            Spacer(Modifier.size(16.dp))
+            Button(
+                onClick = { updateState { copy(timeStart = timeEnd?.minus(1, DateTimeUnit.MONTH, timezone)) } }
+            ) { Text(CommonHardcode { "Show incidents for last month" }) }
+            Spacer(Modifier.size(16.dp))
+            Button(
+                onClick = { updateState { copy(timeStart = timeEnd?.minus(3, DateTimeUnit.MONTH, timezone)) } }
+            ) { Text(CommonHardcode { "Show incidents for last 3 month" }) }
+            Spacer(Modifier.size(16.dp))
+            Button(
+                onClick = { updateState { copy(timeStart = timeEnd?.minus(1, DateTimeUnit.YEAR, timezone)) } }
+            ) { Text(CommonHardcode { "Show incidents for last year" }) }
+        }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -493,6 +527,8 @@ class FeedComponent(
 
         sealed interface Content {
             data object Loading : Content
+
+            data object Empty : Content
 
             @JvmInline
             value class Loaded(val value: List<Incident>) : Content

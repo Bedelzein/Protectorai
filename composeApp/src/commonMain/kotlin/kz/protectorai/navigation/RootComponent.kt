@@ -8,9 +8,16 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.popTo
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kz.protectorai.core.Eventful
+import kz.protectorai.core.coroutineScope
 import kz.protectorai.data.ClientRepository
+import kz.protectorai.data.LocalRepository
 import kz.protectorai.navigation.auth.AuthComponent
 import kz.protectorai.navigation.feed.FeedComponent
 
@@ -25,6 +32,7 @@ interface RootComponent : Eventful<RootComponent.Event> {
         componentContext: ComponentContext
     ) : RootComponent, ComponentContext by componentContext {
 
+        private val scope by lazy { coroutineScope(SupervisorJob()) }
         private val navigation = StackNavigation<Config>()
 
         override val stack: Value<ChildStack<*, Child>> = childStack(
@@ -44,17 +52,29 @@ interface RootComponent : Eventful<RootComponent.Event> {
             }
         }
 
+        init {
+            scope.launch {
+                LocalRepository.getAccessTokenFlow().collectLatest {
+                    withContext(Dispatchers.Main) {
+                        navigation.replaceAll(it?.let(Config::Feed) ?: Config.Auth)
+                    }
+                }
+            }
+        }
+
         override fun onBackPressed() = navigation.pop()
 
         override fun onBackClicked(toIndex: Int) = navigation.popTo(toIndex)
 
         override fun onEvent(event: Event) {
             when (event) {
-                is Event.AuthCompleted ->
-                    navigation.replaceAll(Config.Feed(event.accessToken))
+                is Event.AuthCompleted -> scope.launch {
+                    LocalRepository.saveAccessToken(event.accessToken)
+                }
                 is Event.Logout -> {
                     ClientRepository.logout()
                     navigation.replaceAll(Config.Auth)
+                    scope.launch { LocalRepository.clear() }
                 }
             }
         }

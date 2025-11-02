@@ -1,5 +1,6 @@
 package kz.protectorai.data
 
+import com.arkivanov.decompose.router.items.Items
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -82,7 +83,7 @@ class ClientRepository private constructor(accessToken: String) {
 
     suspend fun getInstitutions(
         companyId: String
-    ): List<Institution> = http.get("companies/$companyId/institutions").body()
+    ): InstitutionListResponse = http.get("companies/$companyId/institutions").body()
 
     companion object Companion {
 
@@ -116,6 +117,9 @@ data class ClientInfo(
 
     val roles: List<String>
 )
+
+@Serializable
+data class InstitutionListResponse(val items: List<Institution>)
 
 @Serializable
 data class Institution(

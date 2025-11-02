@@ -27,8 +27,20 @@ class AuthComponent(
 
     override fun onEvent(event: Event) {
         when (event) {
-            is Event.UsernameChanged -> updateState { copy(username = event.value, errorText = null) }
-            is Event.PasswordChanged -> updateState { copy(password = event.value, errorText = null) }
+            is Event.UsernameChanged -> updateState {
+                copy(
+                    username = event.value,
+                    errorText = null
+                )
+            }
+
+            is Event.PasswordChanged -> updateState {
+                copy(
+                    password = event.value,
+                    errorText = null
+                )
+            }
+
             is Event.AuthButtonClicked -> auth()
         }
     }
@@ -45,6 +57,7 @@ class AuthComponent(
                         onEvent(RootComponent.Event.AuthCompleted(accessToken))
                     }
                 }
+
                 is Payload.Failure -> updateState {
                     copy(
                         password = EMPTY_STRING,
@@ -68,6 +81,7 @@ class AuthComponent(
     sealed interface Event : Eventful.Event {
         @JvmInline
         value class UsernameChanged(val value: String) : Event
+
         @JvmInline
         value class PasswordChanged(val value: String) : Event
         data object AuthButtonClicked : Event

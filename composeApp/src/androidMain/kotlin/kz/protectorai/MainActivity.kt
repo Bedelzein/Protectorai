@@ -13,11 +13,13 @@ import com.arkivanov.decompose.value.Value
 import kz.protectorai.navigation.RootComponent
 import kz.protectorai.navigation.RootContent
 import com.arkivanov.decompose.Child
+import kz.protectorai.data.initPreferencesDataStore
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        initPreferencesDataStore(applicationContext)
         val root = RootComponent.Default(defaultComponentContext())
         setContent { RootContent(root) }
     }
