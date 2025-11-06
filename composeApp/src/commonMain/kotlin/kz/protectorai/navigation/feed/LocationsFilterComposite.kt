@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -34,12 +37,12 @@ class LocationsFilterComposite(
     init {
         scope.launch(Dispatchers.IO) {
             try {
-                val locations = repository.getLocations()
-                val locationsFilter = locations.associateWith { true }
+                val clientInfo = repository.getClientInfo()
+                val institutions = repository.getInstitutions(clientInfo.companyId).items
+                val locationsFilter = institutions.map { it.name }.associateWith { true }
                 updateState { State.Content(locationsFilter) }
             } catch (e: Exception) {
-                updateState { State.Content(mapOf("test_object" to true)) }
-                // updateState { State.Error(e) }
+                updateState { State.Error(e) }
             }
         }
     }
@@ -51,7 +54,10 @@ class LocationsFilterComposite(
             when (state) {
                 is State.Loading -> CircularProgressIndicator()
                 is State.Content -> FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .verticalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val incidentTypes = state.locationsFilter

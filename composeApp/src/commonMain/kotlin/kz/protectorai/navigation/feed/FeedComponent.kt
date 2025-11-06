@@ -8,11 +8,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,15 +37,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import chaintech.videoplayer.host.MediaPlayerEvent
 import chaintech.videoplayer.host.MediaPlayerHost
 import chaintech.videoplayer.ui.video.VideoPlayerComposable
 import com.arkivanov.decompose.ComponentContext
@@ -53,6 +52,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
@@ -70,12 +70,10 @@ import kz.protectorai.core.Eventful
 import kz.protectorai.core.Stateful
 import kz.protectorai.core.coroutineScope
 import kz.protectorai.data.ClientRepository
-import kz.protectorai.data.Institution
 import kz.protectorai.navigation.Composite
 import kz.protectorai.navigation.RootComponent
 import kz.protectorai.navigation.feed.FeedComponent.State.Content
 import kz.protectorai.ui.icons.ProtectoraiIcons
-import kotlin.jvm.JvmInline
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -112,15 +110,6 @@ class FeedComponent(
                 )
             }
         }
-        scope.launch(Dispatchers.IO) {
-            try {
-                val clientInfo = clientRepository.getClientInfo()
-                val institutionsResponse = clientRepository.getInstitutions(clientInfo.companyId)
-                updateState { copy(institutions = institutionsResponse.items) }
-            } catch (e: Throwable) {
-                // TODO
-            }
-        }
         combine(
             incidentTypesFilterComposite
                 .stateFlow
@@ -140,12 +129,13 @@ class FeedComponent(
                 dateEnd
             )
         }
+            .distinctUntilChanged()
             .onEach { incidentsFilter ->
                 try {
                     val format = LocalDateTime.Formats.ISO
                     val dateStart = incidentsFilter.timeStart
                     val dateEnd = incidentsFilter.timeEnd
-                    val incidents = clientRepository.getIncidents(
+                    val incidentsResponse = clientRepository.getIncidents(
                         GetIncidentsRequestBody(
                             isConfirmed = true,
                             locationIds = incidentsFilter.locations,
@@ -154,9 +144,13 @@ class FeedComponent(
                             endDate = dateEnd.toLocalDateTime(timezone).format(format)
                         )
                     )
-                    val content = incidents.takeIf { it.isNotEmpty() }?.let(Content::Loaded) ?: Content.Empty
+                    val content = incidentsResponse
+                        .takeIf { it.total > 0 }
+                        ?.let(Content::Loaded)
+                        ?: Content.Empty
                     updateState { copy(content = content) }
                 } catch (e: Exception) {
+                    println(e)
                     // TODO
                 }
             }
@@ -211,12 +205,10 @@ class FeedComponent(
             when (val content = state.content) {
                 is Content.Loading -> CircularProgressIndicator()
                 is Content.Empty -> EmptyContent()
-                is Content.Loaded -> if (content.value.isNotEmpty()) {
-                    VideoList(
-                        content.value,
-                        modifier = Modifier.padding(it)
-                    )
-                }
+                is Content.Loaded -> VideoList(
+                    content.incidents.items,
+                    modifier = Modifier.padding(it)
+                )
             }
         }
         if (state.isDatePickerVisible) {
@@ -238,15 +230,45 @@ class FeedComponent(
             ) { Text(CommonHardcode { "Select another period" }) }
             Spacer(Modifier.size(16.dp))
             Button(
-                onClick = { updateState { copy(timeStart = timeEnd?.minus(1, DateTimeUnit.MONTH, timezone)) } }
+                onClick = {
+                    updateState {
+                        copy(
+                            timeStart = timeEnd?.minus(
+                                1,
+                                DateTimeUnit.MONTH,
+                                timezone
+                            )
+                        )
+                    }
+                }
             ) { Text(CommonHardcode { "Show incidents for last month" }) }
             Spacer(Modifier.size(16.dp))
             Button(
-                onClick = { updateState { copy(timeStart = timeEnd?.minus(3, DateTimeUnit.MONTH, timezone)) } }
+                onClick = {
+                    updateState {
+                        copy(
+                            timeStart = timeEnd?.minus(
+                                3,
+                                DateTimeUnit.MONTH,
+                                timezone
+                            )
+                        )
+                    }
+                }
             ) { Text(CommonHardcode { "Show incidents for last 3 month" }) }
             Spacer(Modifier.size(16.dp))
             Button(
-                onClick = { updateState { copy(timeStart = timeEnd?.minus(1, DateTimeUnit.YEAR, timezone)) } }
+                onClick = {
+                    updateState {
+                        copy(
+                            timeStart = timeEnd?.minus(
+                                1,
+                                DateTimeUnit.YEAR,
+                                timezone
+                            )
+                        )
+                    }
+                }
             ) { Text(CommonHardcode { "Show incidents for last year" }) }
         }
     }
@@ -256,14 +278,8 @@ class FeedComponent(
     private fun Modal(state: State, modal: State.Modal) {
         ModalBottomSheet(onDismissRequest = { updateState { copy(modal = null) } }) {
             when (modal) {
-                is State.Modal.Notifications -> Column {
-                    state.institutions?.forEach { Text(it.name) }
-                }
+                is State.Modal.Notifications -> Column {}
                 is State.Modal.IncidentDetails -> Column {
-                    VideoItem(
-                        incident = modal.incident,
-                        focusedVideo = true
-                    )
                     ExposedDropdownMenuBox(
                         modifier = Modifier.fillMaxWidth().padding(8.dp),
                         expanded = modal.isTypeExpanded,
@@ -339,9 +355,7 @@ class FeedComponent(
                         updateState { copy(timeStart = startInstant, timeEnd = endInstant) }
                         onDismiss()
                     }
-                ) {
-                    Text("OK")
-                }
+                ) { Text("OK") }
             },
             dismissButton = {
                 TextButton(onClick = onDismiss) {
@@ -350,6 +364,9 @@ class FeedComponent(
             }
         ) {
             DateRangePicker(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 400.dp),
                 state = dateRangePickerState,
                 title = {
                     Column(modifier = Modifier.padding(start = 8.dp, top = 16.dp, end = 8.dp)) {
@@ -380,10 +397,7 @@ class FeedComponent(
                         text = "$formatterStartDate - $formatterEndDate",
                         fontSize = 16.sp
                     )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(500.dp)
+                }
             )
         }
     }
@@ -393,24 +407,13 @@ class FeedComponent(
         incidents: List<Incident>,
         modifier: Modifier = Modifier
     ) {
-        val lazyListState = rememberLazyListState()
-        val focusIndex by remember { derivedStateOf { lazyListState.firstVisibleItemIndex } }
-        val focusIndexOffset by remember { derivedStateOf { lazyListState.firstVisibleItemScrollOffset } }
-
-        val density = LocalDensity.current
-
         LazyColumn(
             modifier = modifier,
-            state = lazyListState,
             contentPadding = PaddingValues(top = 4.dp, bottom = 4.dp)
         ) {
-            items(count = Int.MAX_VALUE) { index ->
-                val videoIndex = index % incidents.size
-
+            items(incidents, key = { it.id + it.time }) { incident ->
                 VideoItem(
-                    incident = incidents[videoIndex],
-                    focusedVideo = index == 0 && focusIndexOffset <= with(density) { 48.dp.toPx() } ||
-                            index == focusIndex + 1 && focusIndexOffset > with(density) { 48.dp.toPx() },
+                    incident = incident,
                     isEditButtonVisible = true
                 )
             }
@@ -421,16 +424,13 @@ class FeedComponent(
     fun VideoItem(
         modifier: Modifier = Modifier,
         incident: Incident,
-        focusedVideo: Boolean,
         isEditButtonVisible: Boolean = false
     ) {
         Card(
             modifier = modifier.padding(horizontal = 16.dp, 6.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Box(
                     Modifier
                         .fillMaxWidth()
@@ -439,8 +439,7 @@ class FeedComponent(
                 ) {
                     Player(
                         modifier = Modifier.fillMaxSize(),
-                        incident = incident,
-                        focusedVideo = focusedVideo
+                        incident = incident
                     )
                 }
                 Row {
@@ -502,12 +501,11 @@ class FeedComponent(
     @Composable
     private fun Player(
         incident: Incident,
-        focusedVideo: Boolean,
         modifier: Modifier = Modifier
     ) {
-        val playerHost = remember { MediaPlayerHost(mediaUrl = incident.videoSource) }
-
-        if (focusedVideo) playerHost.play() else playerHost.pause()
+        val playerHost = remember {
+            MediaPlayerHost(mediaUrl = incident.videoSource, isPaused = true)
+        }
 
         VideoPlayerComposable(
             modifier = modifier,
@@ -519,10 +517,9 @@ class FeedComponent(
         val timeStart: Instant? = null,
         val timeEnd: Instant? = null,
         val content: Content = Content.Loading,
-        val isDatePickerVisible: Boolean = true,
+        val isDatePickerVisible: Boolean = false,
         val modal: Modal? = null,
-        val incidentTypes: List<Incident.Type>? = null,
-        val institutions: List<Institution>? = null
+        val incidentTypes: List<Incident.Type>? = null
     ) : Composite.State {
 
         sealed interface Content {
@@ -530,8 +527,7 @@ class FeedComponent(
 
             data object Empty : Content
 
-            @JvmInline
-            value class Loaded(val value: List<Incident>) : Content
+            data class Loaded(val incidents: IncidentsResponse) : Content
         }
 
         sealed interface Modal {

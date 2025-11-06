@@ -20,6 +20,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kz.protectorai.navigation.feed.GetIncidentsRequestBody
 import kz.protectorai.navigation.feed.Incident
+import kz.protectorai.navigation.feed.IncidentsResponse
 import kz.protectorai.util.FirebaseUtil
 
 class ClientRepository private constructor(accessToken: String) {
@@ -74,10 +75,10 @@ class ClientRepository private constructor(accessToken: String) {
 
     suspend fun getIncidents(
         request: GetIncidentsRequestBody
-    ) = http.post("events/get") {
+    ) = http.post("events/search") {
         contentType(ContentType.Application.Json)
         setBody(request)
-    }.body<List<Incident>>()
+    }.body<IncidentsResponse>()
 
     suspend fun getClientInfo(): ClientInfo = http.get("auth/me").body()
 
@@ -125,11 +126,6 @@ data class InstitutionListResponse(val items: List<Institution>)
 data class Institution(
     @SerialName("institution_id")
     val id: String,
-
     val name: String,
-
-    @SerialName("company_id")
-    val companyId: String,
-
     val address: String?
 )

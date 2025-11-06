@@ -8,7 +8,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
-        FirebaseApp.configure()
+        /* FirebaseApp.configure()
         Messaging.messaging().delegate = self
         UNUserNotificationCenter.current().delegate = self
         let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
@@ -18,7 +18,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             DispatchQueue.main.async {
                 application.registerForRemoteNotifications()
             }
-        }
+        } */
         return true
     }
 }
