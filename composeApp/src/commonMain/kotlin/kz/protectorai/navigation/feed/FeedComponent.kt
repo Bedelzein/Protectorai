@@ -32,19 +32,20 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import chaintech.videoplayer.host.MediaPlayerEvent
 import chaintech.videoplayer.host.MediaPlayerHost
 import chaintech.videoplayer.ui.video.VideoPlayerComposable
 import com.arkivanov.decompose.ComponentContext
@@ -82,12 +83,14 @@ import kotlin.time.Instant
 class FeedComponent(
     componentContext: ComponentContext,
     private val onRootEvent: Eventful<RootComponent.Event>,
-    clientRepository: ClientRepository
+    private val clientRepository: ClientRepository
 ) : ComponentContext by componentContext,
     Composite<FeedComponent.State>, Stateful<FeedComponent.State> by Stateful.Default(State()) {
 
     private val scope by lazy { coroutineScope(SupervisorJob()) }
     private val timezone = TimeZone.currentSystemDefault()
+
+    private val snackbarHostState by lazy { SnackbarHostState() }
 
     private val incidentTypesFilterComposite by lazy {
         IncidentsTypesFilterComposite(
@@ -176,7 +179,18 @@ class FeedComponent(
                     },
                     title = { Text("Protectorai") },
                     actions = {
-                        IconButton(onClick = { updateState { copy(modal = State.Modal.Notifications) } }) {
+                        IconButton(
+                            onClick = {
+                                CommonHardcode {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            CommonHardcode { "В разработке" },
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
                             Icon(
                                 imageVector = ProtectoraiIcons.Notifications(),
                                 contentDescription = null
@@ -200,7 +214,8 @@ class FeedComponent(
                         contentDescription = null
                     )
                 }
-            }
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) }
         ) {
             when (val content = state.content) {
                 is Content.Loading -> CircularProgressIndicator()
@@ -278,8 +293,20 @@ class FeedComponent(
     private fun Modal(state: State, modal: State.Modal) {
         ModalBottomSheet(onDismissRequest = { updateState { copy(modal = null) } }) {
             when (modal) {
-                is State.Modal.Notifications -> Column {}
+                is State.Modal.Notifications -> TODO()
+                is State.Modal.EditIncidentType -> Column {
+                    state.incidentTypes?.forEach {
+                        TextButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { updateIncidentType(modal.incident, it) }
+                        ) {
+                            Text(it.description)
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
                 is State.Modal.IncidentDetails -> Column {
+                    VideoItem(incident = modal.incident)
                     ExposedDropdownMenuBox(
                         modifier = Modifier.fillMaxWidth().padding(8.dp),
                         expanded = modal.isTypeExpanded,
@@ -322,6 +349,7 @@ class FeedComponent(
                                                 )
                                             )
                                         }
+                                        updateIncidentType(modal.incident, it)
                                     }
                                 )
                             }
@@ -443,7 +471,7 @@ class FeedComponent(
                     )
                 }
                 Row {
-                    Column {
+                    Column(modifier = Modifier.weight(5f)) {
                         Text(
                             modifier = Modifier.padding(
                                 start = 8.dp,
@@ -483,11 +511,10 @@ class FeedComponent(
                         IconButton(
                             modifier = Modifier
                                 .align(Alignment.CenterVertically)
+                                .weight(1f)
                                 .padding(end = 8.dp),
                             onClick = {
-                                updateState {
-                                    copy(modal = State.Modal.IncidentDetails(incident))
-                                }
+                                updateState { copy(modal = State.Modal.EditIncidentType(incident)) }
                             }
                         ) {
                             Icon(imageVector = ProtectoraiIcons.Edit(), contentDescription = null)
@@ -513,6 +540,12 @@ class FeedComponent(
         )
     }
 
+    private fun updateIncidentType(incident: Incident, type: Incident.Type) {
+        scope.launch {
+            clientRepository.updateIncidentClass(incident.id, type.id)
+        }
+    }
+
     data class State(
         val timeStart: Instant? = null,
         val timeEnd: Instant? = null,
@@ -532,6 +565,12 @@ class FeedComponent(
 
         sealed interface Modal {
             data object Notifications : Modal
+
+            data class EditIncidentType(
+                val incident: Incident,
+                val type: Incident.Type? = null
+            ) : Modal
+
             data class IncidentDetails(
                 val incident: Incident,
                 val isTypeExpanded: Boolean = false,

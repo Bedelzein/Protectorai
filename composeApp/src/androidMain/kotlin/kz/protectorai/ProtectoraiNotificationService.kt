@@ -20,7 +20,7 @@ class ProtectoraiNotificationService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-        val (title, eventId) = message.data.let { (it["type"] ?: return) to (it["event_id"] ?: return) }
+        val (title, incidentId) = message.data.let { (it["type"] ?: return) to (it["event_id"] ?: return) }
         val channelId = "default_channel"
         val channelName = "Default Channel"
 
@@ -36,7 +36,7 @@ class ProtectoraiNotificationService : FirebaseMessagingService() {
 
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle(title)
-            .setContentText(eventId)
+            .setContentText(incidentId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
