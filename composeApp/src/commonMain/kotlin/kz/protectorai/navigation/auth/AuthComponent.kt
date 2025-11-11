@@ -70,8 +70,8 @@ class AuthComponent(
     }
 
     data class State(
-        val username: String = EMPTY_STRING,
-        val password: String = EMPTY_STRING,
+        val username: String = "test_user",// EMPTY_STRING,
+        val password: String = "grlcknlc",// EMPTY_STRING,
         val isAuthInProgress: Boolean = false,
         val errorText: String? = null
     ) {

@@ -90,7 +90,11 @@ class ClientRepository private constructor(accessToken: String) {
         private var instance: ClientRepository? = null
 
         fun getInstance(accessToken: String) = instance
-            ?: ClientRepository(accessToken).also { instance = it }
+            ?: let {
+                val repository = ClientRepository(accessToken)
+                instance = repository
+                repository
+            }
 
         fun getInstanceUnsafe() = instance ?: error("ClientRepository is not initialized")
 

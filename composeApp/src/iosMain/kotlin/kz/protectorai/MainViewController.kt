@@ -1,6 +1,7 @@
 package kz.protectorai
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.ComposeUIViewController
 import com.arkivanov.decompose.DefaultComponentContext
@@ -9,10 +10,14 @@ import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.ApplicationLifecycle
 import kz.protectorai.navigation.RootComponent
 import kz.protectorai.navigation.RootContent
+import kz.protectorai.util.FirebaseUtil
 
 @OptIn(ExperimentalDecomposeApi::class)
 @Suppress("unused", "FunctionName")
 fun MainViewController() = ComposeUIViewController {
+    LaunchedEffect(Unit) {
+        FirebaseUtil.default = IosFirebaseUtil()
+    }
     val lifecycle = ApplicationLifecycle()
     val backDispatcher = BackDispatcher()
     val root = RootComponent.Default(
