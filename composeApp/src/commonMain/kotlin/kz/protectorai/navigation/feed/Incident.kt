@@ -2,8 +2,13 @@ package kz.protectorai.navigation.feed
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import kotlinx.datetime.format.DateTimeComponents
+import kotlinx.datetime.format.char
+import kotlinx.datetime.serializers.FormattedInstantSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @Immutable
 @Stable
@@ -16,6 +21,7 @@ data class IncidentsResponse(
     val pages: Int
 )
 
+@OptIn(ExperimentalTime::class)
 @Immutable
 @Stable
 @Serializable
@@ -30,7 +36,8 @@ data class Incident(
     @SerialName("location_id")
     val locationId: String,
     @SerialName("time")
-    val time: String,
+    @Serializable(with = TimeSerializer::class)
+    val time: Instant,
     @SerialName("camera_id")
     val cameraId: String,
     @SerialName("probability")
@@ -46,5 +53,23 @@ data class Incident(
         val id: Int,
         val name: String,
         val description: String
+    )
+
+    private class TimeSerializer : FormattedInstantSerializer(
+        name = TimeSerializer::class.qualifiedName ?: "TimeSerializer",
+        format = DateTimeComponents.Format {
+            year()
+            /** TODO: the original format had an `y` directive, so the behavior is different on years earlier than 1 AD. See the [kotlinx.datetime.format.byUnicodePattern] documentation for details. */
+            char('-')
+            monthNumber()
+            char('-')
+            day()
+            char('T')
+            hour()
+            char(':')
+            minute()
+            char(':')
+            second()
+        }
     )
 }

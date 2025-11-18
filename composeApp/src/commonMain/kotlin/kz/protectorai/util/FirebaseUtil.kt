@@ -7,6 +7,6 @@ interface FirebaseUtil {
     fun unregisterFirebaseToken()
 
     companion object {
-        lateinit var default: FirebaseUtil
+        var default: FirebaseUtil? = null
     }
 }

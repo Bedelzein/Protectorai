@@ -19,8 +19,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import kz.protectorai.CommonHardcode
 import kz.protectorai.core.Eventful
 import kz.protectorai.ui.icons.ProtectoraiIcons
 
@@ -33,6 +35,7 @@ fun AuthContent(state: AuthComponent.State, onEvent: Eventful<AuthComponent.Even
             TopAppBar(
                 navigationIcon = {
                     Icon(
+                        modifier = Modifier.padding(16.dp),
                         imageVector = ProtectoraiIcons.Logo(),
                         contentDescription = null
                     )
@@ -41,14 +44,18 @@ fun AuthContent(state: AuthComponent.State, onEvent: Eventful<AuthComponent.Even
             )
         },
         bottomBar = {
+            val keyboardController = LocalSoftwareKeyboardController.current
             Button(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                onClick = { onEvent(AuthComponent.Event.AuthButtonClicked) },
+                onClick = {
+                    keyboardController?.hide()
+                    onEvent(AuthComponent.Event.AuthButtonClicked)
+                },
                 enabled = !state.isAuthInProgress && state.isReadyToAuth
             ) {
-                if (state.isAuthInProgress) CircularProgressIndicator() else Text("Auth")
+                if (state.isAuthInProgress) CircularProgressIndicator() else Text(CommonHardcode { "Войти" })
             }
         }
     ) {
@@ -62,7 +69,7 @@ fun AuthContent(state: AuthComponent.State, onEvent: Eventful<AuthComponent.Even
                     modifier = Modifier.fillMaxWidth(),
                     value = state.username,
                     onValueChange = { onEvent(AuthComponent.Event.UsernameChanged(it)) },
-                    label = { Text("Username") },
+                    label = { Text(CommonHardcode { "Имя пользователя" }) },
                     isError = state.errorText != null,
                     supportingText = { state.errorText?.let { text -> Text(text) } }
                 )
@@ -71,7 +78,7 @@ fun AuthContent(state: AuthComponent.State, onEvent: Eventful<AuthComponent.Even
                     modifier = Modifier.fillMaxWidth(),
                     value = state.password,
                     onValueChange = { onEvent(AuthComponent.Event.PasswordChanged(it)) },
-                    label = { Text("Password") },
+                    label = { Text(CommonHardcode { "Пароль" }) },
                     visualTransformation = PasswordVisualTransformation()
                 )
             }

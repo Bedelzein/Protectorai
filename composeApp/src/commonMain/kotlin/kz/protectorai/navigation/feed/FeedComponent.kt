@@ -43,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,6 +65,9 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
+import kotlinx.datetime.format.DateTimeComponents
+import kotlinx.datetime.format.MonthNames
+import kotlinx.datetime.format.char
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kz.protectorai.CommonHardcode
@@ -173,6 +177,7 @@ class FeedComponent(
                 TopAppBar(
                     navigationIcon = {
                         Icon(
+                            modifier = Modifier.padding(16.dp),
                             imageVector = ProtectoraiIcons.Logo(),
                             contentDescription = null
                         )
@@ -305,6 +310,7 @@ class FeedComponent(
                         }
                     }
                 }
+
                 is State.Modal.IncidentDetails -> Column {
                     VideoItem(incident = modal.incident)
                     ExposedDropdownMenuBox(
@@ -472,16 +478,21 @@ class FeedComponent(
                 }
                 Row {
                     Column(modifier = Modifier.weight(5f)) {
-                        Text(
+                        val uriHandler = LocalUriHandler.current
+                        TextButton(
                             modifier = Modifier.padding(
                                 start = 8.dp,
                                 top = 2.dp,
                                 end = 8.dp
                             ),
-                            text = incident.eventType,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                            onClick = { uriHandler.openUri(incident.videoSource) }
+                        ) {
+                            Text(
+                                text = incident.eventType,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
 
                         Text(
                             modifier = Modifier.padding(
@@ -500,7 +511,22 @@ class FeedComponent(
                                 end = 8.dp,
                                 bottom = 6.dp
                             ),
-                            text = incident.time.replace('T', ' '),
+                            text = incident.time.format(
+                                DateTimeComponents.Format {
+                                    day()
+                                    char(' ')
+                                    monthName(
+                                        MonthNames(
+                                            listOf(
+                                                "янв.", "фев.", "мар.", "апр.", "май", "июня",
+                                                "июля", "авг.", "сен.", "окт.", "ноя.", "дек."
+                                            )
+                                        )
+                                    )
+                                    char(' ')
+                                    year()
+                                }
+                            ),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Normal,
                             color = LocalContentColor.current.copy(.6f)

@@ -1,6 +1,5 @@
 package kz.protectorai.navigation.feed
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,17 +14,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
+import kz.protectorai.CommonHardcode
 import kz.protectorai.core.Stateful
 import kz.protectorai.data.ClientRepository
 import kz.protectorai.navigation.Composite
 import kz.protectorai.ui.icons.ProtectoraiIcons
-import kotlin.collections.component1
-import kotlin.collections.component2
 import kotlin.jvm.JvmInline
 
 class LocationsFilterComposite(
@@ -50,15 +54,15 @@ class LocationsFilterComposite(
     @Composable
     override fun Content(modifier: Modifier, state: State) {
         Column(modifier) {
-            Text("Locations:")
+            Text(CommonHardcode { "Локации:" })
             when (state) {
                 is State.Loading -> CircularProgressIndicator()
                 is State.Content -> FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(100.dp)
-                        .verticalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .fadingEdge(Brush.verticalGradient(0f to Color.Transparent, 0.3f to Color.Red, 0.7f to Color.Red, 1f to Color.Transparent))
+                        .verticalScroll(rememberScrollState())
                 ) {
                     val incidentTypes = state.locationsFilter
                     incidentTypes.forEach { (type, isSelected) ->
@@ -84,6 +88,7 @@ class LocationsFilterComposite(
                         )
                     }
                 }
+
                 is State.Error -> {
                     // Handle error state, e.g., show an error message
                 }
@@ -91,9 +96,18 @@ class LocationsFilterComposite(
         }
     }
 
+    fun Modifier.fadingEdge(brush: Brush) = this
+        .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+        .drawWithContent {
+            drawContent()
+            drawRect(brush = brush, blendMode = BlendMode.DstIn)
+        }
+
     sealed interface State : Composite.State {
         object Loading : State
-        @JvmInline value class Content(val locationsFilter: Map<String, Boolean>) : State
-        @JvmInline value class Error(val error: Throwable) : State
+        @JvmInline
+        value class Content(val locationsFilter: Map<String, Boolean>) : State
+        @JvmInline
+        value class Error(val error: Throwable) : State
     }
 }

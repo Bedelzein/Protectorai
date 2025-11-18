@@ -70,10 +70,14 @@ extension AppDelegate: MessagingDelegate {
             if let error = error {
                 let deviceId = UIDevice.current.identifierForVendor?.uuidString
                 guard let deviceId else { return }
-                IosFirebaseUtilKt.registerFirebaseToken(deviceId: deviceId, firebaseToken: fcmToken)
+                Task.detached(priority: .background) {
+                    IosFirebaseUtilKt.registerFirebaseToken(deviceId: deviceId, firebaseToken: fcmToken)
+                }
                 print("Ошибка при получении Installation ID: \(error)")
             } else if let id = id {
-                IosFirebaseUtilKt.registerFirebaseToken(deviceId: id, firebaseToken: fcmToken)
+                Task.detached(priority: .background) {
+                    IosFirebaseUtilKt.registerFirebaseToken(deviceId: id, firebaseToken: fcmToken)
+                }
             }
         }
     }

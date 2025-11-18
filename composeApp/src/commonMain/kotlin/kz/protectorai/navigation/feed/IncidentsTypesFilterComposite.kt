@@ -45,7 +45,7 @@ class IncidentsTypesFilterComposite(
     @Composable
     override fun Content(modifier: Modifier, state: State) {
         Column(modifier = modifier) {
-            Text("Event types:")
+            Text(CommonHardcode { "Тип инцидентов:" })
             when (state) {
                 is State.Loading -> CircularProgressIndicator()
                 is State.Content -> FlowRow(

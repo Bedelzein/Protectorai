@@ -20,6 +20,7 @@ private const val WORKER_KEY_FIREBASE_TOKEN = "WORKER_KEY_FIREBASE_TOKEN"
 class AndroidFirebaseUtil(private val appContext: Context) : FirebaseUtil {
 
     override fun registerFirebaseToken(token: String?) {
+
         val data = Data.Builder()
             .putBoolean(WORKER_KEY_IS_FIREBASE_TOKEN_REGISTER_PROCESS, true)
             .also { if (token != null) it.putString(WORKER_KEY_FIREBASE_TOKEN, token) }

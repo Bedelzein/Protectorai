@@ -1,6 +1,10 @@
 package kz.protectorai
 
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kz.protectorai.data.ClientRepository
 import kz.protectorai.util.FirebaseUtil
 
@@ -11,7 +15,7 @@ fun setRegistrationTrigger(trigger: FirebaseRegistrationTriggerContract?) {
 }
 
 fun registerFirebaseToken(deviceId: String, firebaseToken: String) {
-    runBlocking {
+    CoroutineScope(SupervisorJob()).launch(Dispatchers.IO) {
         try {
             ClientRepository.getInstanceUnsafe().registerFirebaseToken(deviceId, firebaseToken)
         } catch (e: Throwable) {

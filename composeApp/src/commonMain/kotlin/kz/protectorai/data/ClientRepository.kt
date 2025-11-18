@@ -100,9 +100,9 @@ class ClientRepository private constructor(accessToken: String) {
 
         fun logout() {
             try {
-                FirebaseUtil.default.unregisterFirebaseToken()
-            } catch (e: Exception) {
-
+                FirebaseUtil.default?.unregisterFirebaseToken()
+            } catch (_: Exception) {
+                // TODO
             }
             instance = null
         }

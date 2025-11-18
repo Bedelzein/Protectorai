@@ -19,10 +19,12 @@ media-player = "1.0.47"
 media-frame-kit = "1.0.1"
 google-services = "4.4.4"
 firebase-bom = "34.4.0"
+ui = "1.9.4"
 
 [libraries]
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -46,6 +48,7 @@ media-frame-kit = { module = "network.chaintech:media-frame-kit" , version.ref =
 media-player = { module = "network.chaintech:compose-multiplatform-media-player", version.ref = "media-player" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 worker = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "worker" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
