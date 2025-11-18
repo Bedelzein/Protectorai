@@ -427,7 +427,7 @@ class FeedComponent(
                         locale = locale
                     ) ?: return@DateRangePicker
                     Text(
-                        modifier = Modifier.padding(horizontal = 8.dp),
+                        modifier = Modifier.padding(horizontal = 32.dp),
                         text = "$formatterStartDate - $formatterEndDate",
                         fontSize = 16.sp
                     )

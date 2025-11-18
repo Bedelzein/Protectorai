@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -45,7 +46,10 @@ class IncidentsTypesFilterComposite(
     @Composable
     override fun Content(modifier: Modifier, state: State) {
         Column(modifier = modifier) {
-            Text(CommonHardcode { "Тип инцидентов:" })
+            Text(
+                modifier = Modifier.padding(8.dp),
+                text = CommonHardcode { "Тип инцидентов:" }
+            )
             when (state) {
                 is State.Loading -> CircularProgressIndicator()
                 is State.Content -> FlowRow(
